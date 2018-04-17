@@ -6,9 +6,10 @@
 """
 
 from django.utils import timezone
+from django.utils.deprecation import MiddlewareMixin
 
 
-class UpdateLastActivityMiddleware:
+class UpdateLastActivityMiddleware(MiddlewareMixin):
     """ Update the last_login timestamp every SPLAY_TIME (seconds)
 
     DRF doesn't take a stance here & I want something more
@@ -27,9 +28,11 @@ class UpdateLastActivityMiddleware:
     def get_authenticated_user(self, request):
         """ Return a Django user model object """
 
-        user = getattr(request, 'user', None)
-        if user and user.is_authenticated():
-            return user
+        try:
+            if request.user.is_authenticated():
+                return request.user
+        except (AttributeError, TypeError):
+            return None
 
     def process_response(self, request, response):
         """ Django override, return the response """
