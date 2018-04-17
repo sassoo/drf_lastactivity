@@ -6,10 +6,9 @@
 """
 
 from django.utils import timezone
-from django.utils.deprecation import MiddlewareMixin
 
 
-class UpdateLastActivityMiddleware(MiddlewareMixin):
+class UpdateLastActivityMiddleware:
     """ Update the last_login timestamp every SPLAY_TIME (seconds)
 
     DRF doesn't take a stance here & I want something more
@@ -25,22 +24,32 @@ class UpdateLastActivityMiddleware(MiddlewareMixin):
     LAST_LOGIN_FIELD = 'last_login'
     SPLAY_TIME = 300
 
-    def get_authenticated_user(self, request):
-        """ Return a Django user model object """
+    def __init__(self, get_response):
+        """ Reuquired by django 2.x middlewares """
 
-        try:
-            if request.user.is_authenticated():
-                return request.user
-        except (AttributeError, TypeError):
-            return None
+        self.get_response = get_response
 
-    def process_response(self, request, response):
-        """ Django override, return the response """
+    def __call__(self, request):
+        """ Taken directly from django's docs """
 
+        # Code to be executed for each request before
+        # the view (and later middleware) are called.
+        response = self.get_response(request)
+
+        # Code to be executed for each request/response after
+        # the view is called.
         user = self.get_authenticated_user(request)
         if user:
             self.update_last_login(user)
+
         return response
+
+    def get_authenticated_user(self, request):
+        """ Return an authenticated user model """
+
+        if request.user and request.user.is_authenticated:
+            return request.user
+        return None
 
     def update_last_login(self, user):
         """ Update the user models LAST_LOGIN_FIELD """
